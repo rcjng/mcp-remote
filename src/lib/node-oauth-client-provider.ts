@@ -8,6 +8,7 @@ import {
 } from '@modelcontextprotocol/core'
 import {
   auth,
+  AuthorizationServerMismatchError,
   OAuthError,
   OAuthErrorCode,
   refreshAuthorization,
@@ -1074,6 +1075,17 @@ export class NodeOAuthClientProvider implements OAuthClientProvider {
       const authorizationServerUrl =
         (this.protectedResourceMetadata ? getAuthorizationServerUrl(this.protectedResourceMetadata) : undefined) ??
         new URL('/', this.options.serverUrl).toString()
+      const issuer = metadata?.issuer ?? authorizationServerUrl
+      const stored = await readJsonFile<OAuthTokensWithExpiresAt>(this.serverUrlHash, 'tokens.json', OAuthTokensWithExpiresAtSchema)
+      // Match the SDK's single-trailing-slash tolerance; its comparison helper is not exported.
+      if (
+        stored?.issuer !== undefined &&
+        stored.issuer !== issuer &&
+        !(stored.issuer.endsWith('/') && stored.issuer.slice(0, -1) === issuer) &&
+        !(issuer.endsWith('/') && issuer.slice(0, -1) === stored.issuer)
+      ) {
+        throw new AuthorizationServerMismatchError(stored.issuer, issuer)
+      }
       const resource = await selectResourceURL(new URL(this.resourceServerUrl), this, this.protectedResourceMetadata)
 
       debugLog('Refreshing access token before it expires', { authorizationServerUrl, resource: resource?.toString() })
@@ -1097,11 +1109,12 @@ export class NodeOAuthClientProvider implements OAuthClientProvider {
       })
 
       // Goes through saveTokens so the new expiry is persisted the same way
-      await this.saveTokens(refreshed)
+      await this.saveTokens({ ...refreshed, issuer })
       log('Refreshed the access token before it expired')
 
       return OAuthTokensWithExpiresAtSchema.parse({
         ...refreshed,
+        issuer,
         expires_at: refreshed.expires_in ? Date.now() + refreshed.expires_in * 1000 : undefined,
       })
     } catch (error) {

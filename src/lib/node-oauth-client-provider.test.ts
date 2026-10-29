@@ -1384,6 +1384,57 @@ describe('NodeOAuthClientProvider - proactive token refresh', () => {
 
   const heldLease = (overrides: Record<string, unknown> = {}) => ({ pid: 4242, nonce: 'theirs', at: Date.now(), live: true, ...overrides })
 
+  it.each([undefined, 'https://auth.example.com/tenant', 'https://auth.example.com/tenant/'])(
+    'Scenario: proactive refresh stamps the discovered issuer for stored issuer %s',
+    async (issuer) => {
+      withStoredTokens(storedTokens({ issuer, expires_at: Date.now() - 1000 }))
+      mockRefresh.mockResolvedValue({ access_token: 'fresh-token', refresh_token: 'r2', token_type: 'Bearer', expires_in: 3600 })
+      const provider = new NodeOAuthClientProvider({
+        ...options,
+        authorizationServerMetadata: { issuer: 'https://auth.example.com/tenant' },
+      })
+
+      const result = await provider.tokens()
+
+      expect(result).toMatchObject({ access_token: 'fresh-token', issuer: 'https://auth.example.com/tenant' })
+      expect(mockWriteJsonFile).toHaveBeenCalledWith(
+        options.serverUrlHash,
+        'tokens.json',
+        expect.objectContaining({ access_token: 'fresh-token', issuer: 'https://auth.example.com/tenant' }),
+      )
+    },
+  )
+
+  it.each(['https://other.example.com/tenant', 'https://auth.example.com/other', 'https://auth.example.com/tenant//'])(
+    'Scenario: issuer mismatch %s prevents sending the refresh token',
+    async (issuer) => {
+      withStoredTokens(storedTokens({ issuer, expires_at: Date.now() - 1000 }))
+      const provider = new NodeOAuthClientProvider({
+        ...options,
+        authorizationServerMetadata: { issuer: 'https://auth.example.com/tenant' },
+      })
+
+      const result = await provider.tokens()
+
+      expect(result?.access_token).toBe('stale-token')
+      expect(mockRefresh).not.toHaveBeenCalled()
+      expect(mockWriteJsonFile).not.toHaveBeenCalled()
+    },
+  )
+
+  it('Scenario: absent metadata uses the authorization server URL as the issuer', async () => {
+    withStoredTokens(storedTokens({ expires_at: Date.now() - 1000 }))
+    mockRefresh.mockResolvedValue({ access_token: 'fresh-token', refresh_token: 'r2', token_type: 'Bearer', expires_in: 3600 })
+    const provider = new NodeOAuthClientProvider(options)
+
+    await expect(provider.tokens()).resolves.toMatchObject({ issuer: 'https://example.com/' })
+    expect(mockWriteJsonFile).toHaveBeenCalledWith(
+      options.serverUrlHash,
+      'tokens.json',
+      expect.objectContaining({ issuer: 'https://example.com/' }),
+    )
+  })
+
   it('Scenario: an instance waits for the sibling already refreshing rather than spending the token twice', async () => {
     const expired = storedTokens({ expires_at: Date.now() - 1000 })
     const renewed = storedTokens({ access_token: 'from-sibling', refresh_token: 'r2', expires_at: Date.now() + 3_600_000 })
