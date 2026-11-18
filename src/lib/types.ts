@@ -35,6 +35,8 @@ export interface OAuthProviderOptions {
   clientMetadataUrl?: string
   /** Present the OIDC ID token as the Bearer credential instead of the access token */
   useIdToken?: boolean
+  /** Reuse cached tokens and refresh only; refuse browser or device consent when false. */
+  allowInteractiveAuth?: boolean
   /** Sign in with the OAuth device grant (RFC 8628) rather than a browser on this machine */
   useDeviceCode?: boolean
   /** Sign in as the software itself with the RFC 6749 `client_credentials` grant */

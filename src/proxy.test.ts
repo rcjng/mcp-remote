@@ -42,6 +42,7 @@ vi.mock('./lib/utils', () => ({
     callbackPort: 3600,
     specifiedPort: 3600,
     headers: {},
+    allowInteractiveAuth: true,
     authTimeoutMs: 1000,
     serverUrlHash: 'proxy-completion',
     authSuccessUrl: 'https://app.example.com/cli-connected',

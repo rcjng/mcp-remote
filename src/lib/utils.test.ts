@@ -162,6 +162,13 @@ describe('Feature: Command Line Arguments Parsing', () => {
     expect(result.useIdToken).toBe(false)
   })
 
+  it('Scenario: Reuse existing credentials without starting consent in unattended mode', async () => {
+    const result = await parseCommandLineArgs(['https://example.com/sse', '--no-interactive-auth'], 'test usage')
+    expect(result.allowInteractiveAuth).toBe(false)
+    const interactive = await parseCommandLineArgs(['https://example.com/sse'], 'test usage')
+    expect(interactive.allowInteractiveAuth).toBe(true)
+  })
+
   it('Scenario: Ask to sign in without a browser on this machine', async () => {
     const result = await parseCommandLineArgs(['https://example.com/sse', '--device-code'], 'test usage')
 

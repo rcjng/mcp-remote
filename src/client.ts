@@ -42,6 +42,7 @@ async function runClient(
   staticOAuthClientInfo: StaticOAuthClientInformationFull,
   clientMetadataUrl: string | undefined,
   useIdToken: boolean,
+  allowInteractiveAuth: boolean,
   useDeviceCode: boolean,
   useClientCredentials: boolean,
   tokenEndpoint: string | undefined,
@@ -98,6 +99,7 @@ async function runClient(
     staticOAuthClientInfo,
     clientMetadataUrl,
     useIdToken,
+    allowInteractiveAuth,
     useDeviceCode,
     useClientCredentials,
     tokenEndpoint,
@@ -127,6 +129,9 @@ async function runClient(
 
   // Define an auth initializer function
   const authInitializer = async (options?: { forceRefresh?: boolean }) => {
+    if (!allowInteractiveAuth) {
+      throw new Error('Interactive OAuth required; run explicit MCP setup to sign in')
+    }
     const authState = await authCoordinator.initializeAuth(options)
 
     // Store server in outer scope for cleanup
@@ -213,7 +218,10 @@ async function runClient(
 }
 
 // Parse command-line arguments and run the client
-parseCommandLineArgs(process.argv.slice(2), 'Usage: mcp-remote-client <https://server-url> [callback-port] [--debug]')
+parseCommandLineArgs(
+  process.argv.slice(2),
+  'Usage: mcp-remote-client <https://server-url> [callback-port] [--debug] [--no-interactive-auth]',
+)
   .then(
     ({
       serverUrl,
@@ -227,6 +235,7 @@ parseCommandLineArgs(process.argv.slice(2), 'Usage: mcp-remote-client <https://s
       staticOAuthClientInfo,
       clientMetadataUrl,
       useIdToken,
+      allowInteractiveAuth,
       useDeviceCode,
       useClientCredentials,
       tokenEndpoint,
@@ -249,6 +258,7 @@ parseCommandLineArgs(process.argv.slice(2), 'Usage: mcp-remote-client <https://s
         staticOAuthClientInfo,
         clientMetadataUrl,
         useIdToken,
+        allowInteractiveAuth,
         useDeviceCode,
         useClientCredentials,
         tokenEndpoint,

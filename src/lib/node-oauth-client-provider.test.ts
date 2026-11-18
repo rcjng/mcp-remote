@@ -98,6 +98,18 @@ describe('NodeOAuthClientProvider - OAuth Scope Handling', () => {
   })
 
   describe('authorization URL', () => {
+    it('refuses new consent in unattended mode before opening a browser or device flow', async () => {
+      for (const useDeviceCode of [false, true]) {
+        provider = new NodeOAuthClientProvider({ ...defaultOptions, allowInteractiveAuth: false, useDeviceCode })
+        await expect(provider.redirectToAuthorization(new URL('https://auth.example.com/authorize'))).rejects.toThrow(
+          'Interactive OAuth required; run explicit MCP setup to sign in',
+        )
+      }
+      expect(authorizeWithDeviceCode).not.toHaveBeenCalled()
+      expect(log).not.toHaveBeenCalled()
+      expect(mockWriteJsonFile).not.toHaveBeenCalled()
+    })
+
     it('should include scope parameter in authorization URL', async () => {
       provider = new NodeOAuthClientProvider({
         ...defaultOptions,

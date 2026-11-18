@@ -1250,6 +1250,9 @@ export class NodeOAuthClientProvider implements OAuthClientProvider {
    * @param authorizationUrl The URL to redirect to
    */
   async redirectToAuthorization(authorizationUrl: URL): Promise<void> {
+    if (this.options.allowInteractiveAuth === false) {
+      throw new Error('Interactive OAuth required; run explicit MCP setup to sign in')
+    }
     // A refused refresh sends the SDK down the full authorization path, so without this the brake
     // would turn an exchange loop into a browser-tab loop - the same storm, more visible.
     if (this.inTokenStorm()) throw this.tokenStormError()

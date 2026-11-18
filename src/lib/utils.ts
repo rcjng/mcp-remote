@@ -3053,6 +3053,8 @@ export async function parseCommandLineArgs(args: string[], usage: string) {
     log('Cookies disabled; requests will not carry session stickiness')
   }
 
+  const allowInteractiveAuth = !args.includes('--no-interactive-auth')
+
   // No browser on this machine: sign in from wherever the person actually is
   const useDeviceCode = args.includes('--device-code')
   if (useDeviceCode) {
@@ -3245,6 +3247,7 @@ export async function parseCommandLineArgs(args: string[], usage: string) {
     staticOAuthClientInfo,
     clientMetadataUrl,
     useIdToken,
+    allowInteractiveAuth,
     useDeviceCode,
     useClientCredentials,
     tokenEndpoint,

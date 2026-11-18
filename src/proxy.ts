@@ -51,6 +51,7 @@ async function runProxy(
   staticOAuthClientInfo: StaticOAuthClientInformationFull,
   clientMetadataUrl: string | undefined,
   useIdToken: boolean,
+  allowInteractiveAuth: boolean,
   useDeviceCode: boolean,
   useClientCredentials: boolean,
   tokenEndpoint: string | undefined,
@@ -110,6 +111,7 @@ async function runProxy(
     staticOAuthClientInfo,
     clientMetadataUrl,
     useIdToken,
+    allowInteractiveAuth,
     useDeviceCode,
     useClientCredentials,
     tokenEndpoint,
@@ -131,6 +133,9 @@ async function runProxy(
 
   // Define an auth initializer function
   const authInitializer = async (options?: { forceRefresh?: boolean }) => {
+    if (!allowInteractiveAuth) {
+      throw new Error('Interactive OAuth required; run explicit MCP setup to sign in')
+    }
     const authState = await authCoordinator.initializeAuth(options)
 
     // Store server in outer scope for cleanup
@@ -295,7 +300,7 @@ to the CA certificate file. If using claude_desktop_config.json, this might look
 }
 
 // Parse command-line arguments and run the proxy
-parseCommandLineArgs(process.argv.slice(2), 'Usage: mcp-remote <https://server-url> [callback-port] [--debug]')
+parseCommandLineArgs(process.argv.slice(2), 'Usage: mcp-remote <https://server-url> [callback-port] [--debug] [--no-interactive-auth]')
   .then(
     ({
       serverUrl,
@@ -309,6 +314,7 @@ parseCommandLineArgs(process.argv.slice(2), 'Usage: mcp-remote <https://server-u
       staticOAuthClientInfo,
       clientMetadataUrl,
       useIdToken,
+      allowInteractiveAuth,
       useDeviceCode,
       useClientCredentials,
       tokenEndpoint,
@@ -334,6 +340,7 @@ parseCommandLineArgs(process.argv.slice(2), 'Usage: mcp-remote <https://server-u
         staticOAuthClientInfo,
         clientMetadataUrl,
         useIdToken,
+        allowInteractiveAuth,
         useDeviceCode,
         useClientCredentials,
         tokenEndpoint,
